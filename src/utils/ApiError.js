@@ -6,7 +6,7 @@ class ApiError extends Eroor{
         // this.stack = stack,
         this.data = null,
         this.message = message,
-        this.success = false,
+        this.success = false;
         this.errors = errors
 
         if(stack){
