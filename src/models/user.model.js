@@ -8,20 +8,13 @@ dotenv.config({
 
 const userSchema = new Schema(
     {
-        user:{
+        username:{
             type:String,
             required:true,
             unique:true,
             trim:true,
            lowercase:true,
            index: true
-        },
-        user:{
-            type:String,
-            required:true,
-            unique:true,
-            trim:true,
-           lowercase:true,
         },
         fullName:{
             type:String,
