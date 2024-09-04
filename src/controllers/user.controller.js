@@ -4,6 +4,7 @@ import  {ApiError}  from "../utils/ApiError.js";
 // import {upload} from '../middlewares/multer.middleware.js';
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
+import fs from "fs"
 
 const registerUser = asyncHandler(async (req, res) => {
         // 1. Get user details from frontend
@@ -20,16 +21,15 @@ const registerUser = asyncHandler(async (req, res) => {
         const existingUser = await User.findOne({
             $or: [{ username }, { email }]
         });
-
-        if (existingUser) {
-            throw new ApiError(409, "User with email or username already exists");
-        }
-
-        
-        // // 4. Check for images, check for avatar
         const avatarLocalPath = req.files?.avatar[0]?.path;
         const coverImageLocalPath = req.files?.coverImage[0]?.path;
-
+        if (existingUser) {
+            fs.unlinkSync(avatarLocalPath)
+            fs.unlinkSync(coverImageLocalPath)
+            console.log("Unlinked Local files")
+            throw new ApiError(409, "User with email or username already exists");
+        }// variables are defined above to give access to unlink method as well
+        // // 4. Check for images, check for avatar
         if (!avatarLocalPath) {
             throw new ApiError(400, "Avatar file is required");
         }
