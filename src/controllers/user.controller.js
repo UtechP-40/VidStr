@@ -8,65 +8,66 @@ import fs from "fs"
 
 const registerUser = asyncHandler(async (req, res) => {
         // 1. Get user details from frontend
-        const { username, email, fullName, password } = req.body;
-        console.log(req.body);
+        const {fullName, email, username, password } = req.body
+    //console.log("email: ", email);
 
-        // // 2. Validate non-empty fields
+    if (
+        [fullName, email, username, password].some((field) => field?.trim() === "")
+    ) {
+        throw new ApiError(400, "All fields are required")
+    }
 
-        if ([username, email, fullName, password].some(field => !field || field.trim() === "")) {
-            throw new ApiError(400, "All fields are required");
-        }
+    const existedUser = await User.findOne({
+        $or: [{ username }, { email }]
+    })
 
-        // // 3. Check if user already exists
-        const existingUser = await User.findOne({
-            $or: [{ username }, { email }]
-        });
-        const avatarLocalPath = req.files?.avatar[0]?.path;
-        const coverImageLocalPath = req.files?.coverImage[0]?.path;
-        if (existingUser) {
-            fs.unlinkSync(avatarLocalPath)
-            fs.unlinkSync(coverImageLocalPath)
-            console.log("Unlinked Local files")
-            throw new ApiError(409, "User with email or username already exists");
-        }// variables are defined above to give access to unlink method as well
-        // // 4. Check for images, check for avatar
-        if (!avatarLocalPath) {
-            throw new ApiError(400, "Avatar file is required");
-        }
+    if (existedUser) {
+        throw new ApiError(409, "User with email or username already exists")
+    }
+    //console.log(req.files);
 
-        // // 5. Upload them to cloudinary, avatar
-        const avatar = await uploadOnCloudinary(avatarLocalPath);
-        const coverImage = coverImageLocalPath ? await uploadOnCloudinary(coverImageLocalPath) : null;
+    const avatarLocalPath = req.files?.avatar[0]?.path;
+    //const coverImageLocalPath = req.files?.coverImage[0]?.path;
 
-        if (!avatar) {
-            throw new ApiError(400, "Avatar file upload failed");
-        }
+    let coverImageLocalPath;
+    if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+        coverImageLocalPath = req.files.coverImage[0].path
+    }
+    
 
-        // // 6. Create user object - create user in database
-        const user = await User.create({
-            fullName,
-            avatar: avatar.url,
-            coverImage: coverImage?.url || "",
-            email,
-            password,
-            username: username.toLowerCase()
-        });
+    if (!avatarLocalPath) {
+        throw new ApiError(400, "Avatar file is required")
+    }
 
+    const avatar = await uploadOnCloudinary(avatarLocalPath)
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 
-        // // 7. Remove password and refresh token field from response
-        const createdUser = await User.findById(user._id).select(
-            "-password -refreshToken"
-        );
+    if (!avatar) {
+        throw new ApiError(400, "Avatar file is required")
+    }
+   
 
-        // // 8. Check for user creation
-        if (!createdUser) {
-            throw new ApiError(500, "Something went wrong while registering the user");
-        }
+    const user = await User.create({
+        fullName,
+        avatar: avatar.url,
+        coverImage: coverImage?.url || "",
+        email, 
+        password,
+        username: username.toLowerCase()
+    })
 
-        // // 9. Return response
-        return res.status(201).json(
-            new ApiResponse(200, createdUser, "User registered successfully")
-        );
+    const createdUser = await User.findById(user._id).select(
+        "-password -refreshToken"
+    )
+
+    if (!createdUser) {
+        throw new ApiError(500, "Something went wrong while registering the user")
+    }
+
+    return res.status(201).json(
+        new ApiResponse(200, createdUser, "User registered Successfully")
+    )
+        
 })
 
 export { registerUser };
