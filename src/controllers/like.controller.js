@@ -18,11 +18,17 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 const toggleTweetLike = asyncHandler(async (req, res) => {
     const {tweetId} = req.params
     //TODO: toggle like on tweet
+    // const {userId} = req.user
+
+    
+
 }
 )
 
 const getLikedVideos = asyncHandler(async (req, res) => {
     //TODO: get all liked videos
+    const likedVideos = await Like.find({}).populate('videoId');
+    res.status(200).json(likedVideos);
 })
 
 export {
