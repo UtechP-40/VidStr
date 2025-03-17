@@ -5,28 +5,30 @@ import  {ApiError}  from "../utils/ApiError.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 import fs from "fs"
+import dotenv from "dotenv"
 import jwt from "jsonwebtoken"
-const generateAccessAndRefreshTokens = async (userId)=>{
-    try{
-        const user = await User.findById(userId)
-       const accessToken =  user.generateAccessToken()
-       const refreshToken = user.generateRefreshToken()
+dotenv.config()
+// const generateAccessAndRefreshTokens = async (userId)=>{
+//     try{
+//         const user = await User.findById(userId)
+//        const accessToken =  user.generateAccessToken()
+//        const refreshToken = user.generateRefreshToken()
 
-       user.refreshToken = refreshToken
-       await user.save({validateBeforeSave:false})
-       return {accessToken,refreshToken}
-    }catch(error){
-        throw new ApiError(500, "Somthing went wrong while generating refresh and access token")
-    }
-}
+//        user.refreshToken = refreshToken
+//        await user.save({validateBeforeSave:false})
+//        return {accessToken,refreshToken}
+//     }catch(error){
+//         throw new ApiError(500, "Somthing went wrong while generating refresh and access token")
+//     }
+// }
 
 const registerUser = asyncHandler(async (req, res) => {
         // 1. Get user details from frontend
         const {fullName, email, username, password } = req.body
     //console.log("email: ", email);
-    
+    console.log(req.body)
     if (
-        [fullName, email, username, password].some((field) => field?.trim() === "")
+        [fullName || "", email || "", username || "", password || ""].some((field) => field?.trim() === "")
     ) {
         throw new ApiError(400, "All fields are required")
     }
@@ -34,7 +36,7 @@ const registerUser = asyncHandler(async (req, res) => {
     const existedUser = await User.findOne({
         $or: [{ username }, { email }]
     })
-
+console.log(existedUser)
     if (existedUser) {
         throw new ApiError(409, "User with email or username already exists")
     }
@@ -69,7 +71,7 @@ const registerUser = asyncHandler(async (req, res) => {
         password,
         username: username.toLowerCase()
     })
-    const {accessToken, refreshToken} = await generateAccessAndRefreshTokens(user?._id)
+    // const {accessToken, refreshToken} = await generateAccessAndRefreshTokens(user?._id)
     const createdUser = await User.findById(user._id).select(
         "-password -refreshToken"
     )
@@ -84,112 +86,129 @@ const registerUser = asyncHandler(async (req, res) => {
         
 })
 
-const loginUser = asyncHandler(async (req,res)=>{
-    const {email,username,password}=req.body
-    if(!username && !email){
-        throw new ApiError(400, "username or email is required")
-    }
-
-   const user = await User.findOne(
-    {$or: [{username},{email}]}
-   )
-   if(!user){
-    throw new ApiError(404, "User dose not exist")
-   }
-   const isPasswordValid =  await user.isPasswordCorrect(password)
-   if(!isPasswordValid){
-    throw new ApiError(404, "Incorrect Password")
-   }
-   const {accessToken,refreshToken}=await generateAccessAndRefreshTokens(user._id)
-   const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
-
-   const options = {
-    httpOnly: true,
-    secure: true
-   }
-// res.status(200)
-//     .cookie("accessToken", accessToken, options)
-//     .cookie("refreshToken", refreshToken, options)
-//     .json(new ApiResponse(
-//         200,
-//         {
-//             user: loggedInUser,
-//             accessToken,
-//             refreshToken
-//         },
-//         "User logged in Successfully"
-//     ));
-console.log(accessToken,refreshToken)
-res.status(200).cookie("accessToken",accessToken,options).cookie("refreshToken",refreshToken,options).json(
-    new ApiResponse(
-        200,
-        {
-            user: loggedInUser,
-            accessToken,
-            refreshToken
-        },
-        "User logged in Successfully"
-    )
-)
-})
-
-const logoutUser = asyncHandler(async (req,res)=>{
-   await User.findByIdAndUpdate(
-        req.user._id,
-        {
-            $set:{
-                refreshToken:undefined
-            }
-        },
-        {
-            new:true
-        }
-        
-    )
-
-    const options = {
-        httpOnly: true,
-        secure: true
-       }
-       return res.status(200).clearCookie("accessToken",options).clearCookie("refreshToken",options).json(
-        new ApiResponse(200,{},"User Logged Out Successfully")
-       )
-})
-
-const refreshAccessToken = asyncHandler(async (req,res)=>{
-    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshTokne
-    if(!incomingRefreshToken){
-        throw new ApiError(401,"unauthorized request")
-    }
+const loginUser = asyncHandler(async (req, res, next) => {
     try {
-        const decodedToken = jwt.verify(
-            incomingRefreshToken,
-            process.env.REFRESH_TOKEN_SECRATE
-        )
-        const user = await User.findById(decodedToken?._id)
-    
-        if(!user){
-            throw new ApiError(401,"Invalid Refresh token")
+        const { email, password } = req.body
+
+        if (!email || !password) {
+            throw new ApiError(400, "Email and Password are required");
         }
-        if(incomingRefreshToken !== user?.refreshToken){
-            throw new ApiError(401,"Refresh token is expired or used")
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            throw new ApiError(404, "User does not exist");
         }
+
+        const isPasswordValid = await user.isPasswordCorrect(password);
+        if (!isPasswordValid) {
+            throw new ApiError(401, "Incorrect password");
+        }
+
+        // Generate tokens using user methods
+        const accessToken = user.generateAccessToken();
+        const refreshToken = user.generateRefreshToken();
+
+        // Update user's refresh token
+        user.refreshToken = refreshToken;
+        await user.save({ validateBeforeSave: false });
+
+        // Remove sensitive information
+        const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+
         const options = {
-            httpOnly:true,
-            secure:true
-        }
-        const {accessToken,newrefreshToken} =await generateAccessAndRefreshTokens(user._id)
-        return res.status(200).cookie("accessToken",accessToken ,options).cookie("refreshToken",newrefreshToken,options).json(
-            new ApiResponse(
-                200,
+            httpOnly: true,
+            secure: true
+        };
+
+        return res
+            .status(200)
+            .cookie("accessToken", accessToken, options)
+            .cookie("refreshToken", refreshToken, options)
+            .json(new ApiResponse(
+                200, 
                 {
-                    accessToken,newrefreshToken
+                    user: loggedInUser,
+                    accessToken,
+                    refreshToken
                 },
-                "Access Token refreshed"
-            )
+                "User logged in successfully"
+            ));
+    } catch (error) {
+        console.log(error)
+        next(error)
+    }
+})
+
+const logoutUser = asyncHandler(async (req, res, next) => {
+    try {
+        
+
+        if (req.logout) {
+            req.logout(function (err) {
+                if (err) return next(err);
+            });
+        }
+
+
+        await RefreshToken.findOneAndDelete({ user: req.user?._id })
+
+        const options = {
+            httpOnly: true,
+            secure: true
+        }
+
+        
+        return res.status(200).clearCookie("accessToken", options).clearCookie("refreshToken", options).json(
+            new ApiResponse(200, {}, "User Logged Out Successfully")
         )
     } catch (error) {
-        throw new ApiError(401,error?.message || "Invalid refresh Token")
+        next(error)
+    }
+})
+
+const refreshAccessToken = asyncHandler(async (req, res, next) => {
+    try {
+        const refreshToken = req.cookies.refreshToken || req.body.refreshToken
+
+        // Check if refresh token is provided
+        if (!refreshToken) {
+            throw new ApiError(400, "Refresh Token required");
+        }
+
+        // Find refresh token and populate user
+        const foundRefreshToken = await RefreshToken.findOne({ refresh: refreshToken }).populate("user");
+        if (!foundRefreshToken) {
+            throw new ApiError(404, "Wrong Refresh Token");
+        }
+
+        const { user } = foundRefreshToken;
+
+        // Generate new access token
+        const accessToken = jwt.sign(
+            {
+                _id: user._id,
+                email: user.email,
+                name: user.name,
+            },
+            process.env.ACCESS_TOKEN_SECRATE,
+            {
+                expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+            }
+        );
+
+        const options = {
+            httpOnly: true,
+            secure: true,
+        };
+
+        // Set cookies and send response
+        res
+            .cookie("accessToken", accessToken, options)
+            .cookie("refreshToken", refreshToken, options)
+            .json(new ApiResponse(200, { user, accessToken, refreshToken }, "User logged in successfully"));
+    } catch (error) {
+        // next(error);
+        res.status(error.statusCode || 500).json(new ApiResponse(error.statusCode || 500, {}, error?.message || "Internal Server Error"));
     }
 })
 
@@ -363,6 +382,49 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
             }
         },
         {
+            $lookup: {
+                from: "videos",
+                localField: "_id",
+                foreignField: "owner",
+                as: "videos",
+                pipeline: [
+                    {
+                        $match: {
+                            isPublished: true // Only get published videos
+                        }
+                    },
+                    {
+                        $project: {
+                            title: 1,
+                            description: 1,
+                            duration: 1,
+                            views: 1,
+                            thumbnail: 1,
+                            videoFile: 1,
+                            createdAt: 1
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $addFields: {
+                subscribersCount: {
+                    $size: "$subscribers"
+                },
+                channelsSubscribedToCount: {
+                    $size: "$subscribedTo"
+                },
+                isSubscribed: {
+                    $cond: {
+                        if: {$in: [req.user?._id, "$subscribers.subscriber"]},
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        },
+        {
             $project: {
                 fullName: 1,
                 username: 1,
@@ -371,8 +433,9 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
                 isSubscribed: 1,
                 avatar: 1,
                 coverImage: 1,
-                email: 1
-
+                email: 1,
+                videos: 1,
+                videosCount: 1
             }
         }
     ])

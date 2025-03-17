@@ -1,0 +1,435 @@
+{
+    "info": {
+      "name": "Video Streaming Platform API",
+      "description": "API collection for Video Streaming Platform",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+      {
+        "key": "base_url",
+        "value": "http://localhost:8000",
+        "type": "string"
+      }
+    ],
+    "item": [
+      {
+        "name": "Auth",
+        "item": [
+          {
+            "name": "Login",
+            "request": {
+              "method": "POST",
+              "url": "{{base_url}}/api/auth/login",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"password123\"\n}",
+                "options": {
+                  "raw": {
+                    "language": "json"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "name": "Google OAuth",
+            "request": {
+              "method": "GET",
+              "url": "{{base_url}}/api/auth/google"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Users",
+        "item": [
+          {
+            "name": "Register User",
+            "request": {
+              "method": "POST",
+              "url": "{{base_url}}/api/v1/users/register",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n    \"username\": \"testuser\",\n    \"email\": \"test@example.com\",\n    \"fullName\": \"Test User\",\n    \"password\": \"password123\"\n}",
+                "options": {
+                  "raw": {
+                    "language": "json"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "name": "Get Current User",
+            "request": {
+              "method": "GET",
+              "url": "{{base_url}}/api/v1/users/current",
+              "auth": {
+                "type": "bearer",
+                "bearer": [
+                  {
+                    "key": "token",
+                    "value": "{{accessToken}}",
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "Videos",
+        "item": [
+          {
+            "name": "Upload Video",
+            "request": {
+              "method": "POST",
+              "url": "{{base_url}}/api/v1/videos",
+              "auth": {
+                "type": "bearer",
+                "bearer": [
+                  {
+                    "key": "token",
+                    "value": "{{accessToken}}",
+                    "type": "string"
+                  }
+                ]
+              },
+              "body": {
+                "mode": "formdata",
+                "formdata": [
+                  {
+                    "key": "videoFile",
+                    "type": "file",
+                    "src": []
+                  },
+                  {
+                    "key": "title",
+                    "value": "Test Video",
+                    "type": "text"
+                  },
+                  {
+                    "key": "description",
+                    "value": "Test Description",
+                    "type": "text"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "name": "Get All Videos",
+            "request": {
+              "method": "GET",
+              "url": "{{base_url}}/api/v1/videos"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Comments",
+        "item": [
+          {
+            "name": "Add Comment",
+            "request": {
+              "method": "POST",
+              "url": "{{base_url}}/api/v1/comments/:videoId",
+              "auth": {
+                "type": "bearer",
+                "bearer": [
+                  {
+                    "key": "token",
+                    "value": "{{accessToken}}",
+                    "type": "string"
+                  }
+                ]
+              },
+              "body": {
+                "mode": "raw",
+                "raw": "{\n    \"comment\": \"Great video!\"\n}",
+                "options": {
+                  "raw": {
+                    "language": "json"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "name": "Get Video Comments",
+            "request": {
+              "method": "GET",
+              "url": "{{base_url}}/api/v1/comments/:videoId"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Likes",
+        "item": [
+          {
+            "name": "Toggle Like",
+            "request": {
+              "method": "POST",
+              "url": "{{base_url}}/api/v1/likes/toggle/:videoId",
+              "auth": {
+                "type": "bearer",
+                "bearer": [
+                  {
+                    "key": "token",
+                    "value": "{{accessToken}}",
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "Playlists",
+        "item": [
+          {
+            "name": "Create Playlist",
+            "request": {
+              "method": "POST",
+              "url": "{{base_url}}/api/v1/playlist",
+              "auth": {
+                "type": "bearer",
+                "bearer": [
+                  {
+                    "key": "token",
+                    "value": "{{accessToken}}",
+                    "type": "string"
+                  }
+                ]
+              },
+              "body": {
+                "mode": "raw",
+                "raw": "{\n    \"name\": \"My Playlist\",\n    \"description\": \"My favorite videos\"\n}",
+                "options": {
+                  "raw": {
+                    "language": "json"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "Subscriptions",
+        "item": [
+          {
+            "name": "Toggle Subscription",
+            "request": {
+              "method": "POST",
+              "url": "{{base_url}}/api/v1/subscriptions/toggle/:channelId",
+              "auth": {
+                "type": "bearer",
+                "bearer": [
+                  {
+                    "key": "token",
+                    "value": "{{accessToken}}",
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "Notifications",
+        "item": [
+          {
+            "name": "Get Notifications",
+            "request": {
+              "method": "GET",
+              "url": "{{base_url}}/api/v1/notifications",
+              "auth": {
+                "type": "bearer",
+                "bearer": [
+                  {
+                    "key": "token",
+                    "value": "{{accessToken}}",
+                    "type": "string"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "Auth",
+        "item": [
+          {
+            "name": "Logout",
+            "request": {
+              "method": "POST",
+              "url": "{{base_url}}/api/auth/logout",
+              "auth": {
+                "type": "bearer",
+                "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+              }
+            }
+          },
+          {
+            "name": "Refresh Token",
+            "request": {
+              "method": "POST",
+              "url": "{{base_url}}/api/auth/refresh-token"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Videos",
+        "item": [
+          {
+            "name": "Get Video by ID",
+            "request": {
+              "method": "GET",
+              "url": "{{base_url}}/api/v1/videos/:videoId"
+            }
+          },
+          {
+            "name": "Update Video",
+            "request": {
+              "method": "PATCH",
+              "url": "{{base_url}}/api/v1/videos/:videoId",
+              "auth": {
+                "type": "bearer",
+                "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+              },
+              "body": {
+                "mode": "raw",
+                "raw": "{\n    \"title\": \"Updated Title\",\n    \"description\": \"Updated Description\"\n}",
+                "options": {"raw": {"language": "json"}}
+              }
+            }
+          },
+          {
+            "name": "Delete Video",
+            "request": {
+              "method": "DELETE",
+              "url": "{{base_url}}/api/v1/videos/:videoId",
+              "auth": {
+                "type": "bearer",
+                "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "Comments",
+        "item": [
+          {
+            "name": "Update Comment",
+            "request": {
+              "method": "PATCH",
+              "url": "{{base_url}}/api/v1/comments/c/:commentId",
+              "auth": {
+                "type": "bearer",
+                "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+              },
+              "body": {
+                "mode": "raw",
+                "raw": "{\n    \"comment\": \"Updated comment\"\n}",
+                "options": {"raw": {"language": "json"}}
+              }
+            }
+          },
+          {
+            "name": "Delete Comment",
+            "request": {
+              "method": "DELETE",
+              "url": "{{base_url}}/api/v1/comments/c/:commentId",
+              "auth": {
+                "type": "bearer",
+                "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "Playlists",
+        "item": [
+          {
+            "name": "Get User Playlists",
+            "request": {
+              "method": "GET",
+              "url": "{{base_url}}/api/v1/playlist",
+              "auth": {
+                "type": "bearer",
+                "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+              }
+            }
+          },
+          {
+            "name": "Add Video to Playlist",
+            "request": {
+              "method": "POST",
+              "url": "{{base_url}}/api/v1/playlist/:playlistId/videos",
+              "auth": {
+                "type": "bearer",
+                "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+              },
+              "body": {
+                "mode": "raw",
+                "raw": "{\n    \"videoId\": \"video_id_here\"\n}",
+                "options": {"raw": {"language": "json"}}
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "Notifications",
+        "item": [
+          {
+            "name": "Mark as Read",
+            "request": {
+              "method": "PATCH",
+              "url": "{{base_url}}/api/v1/notifications/:notificationId/read",
+              "auth": {
+                "type": "bearer",
+                "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+              }
+            }
+          },
+          {
+            "name": "Mark All as Read",
+            "request": {
+              "method": "PATCH",
+              "url": "{{base_url}}/api/v1/notifications/mark-all-read",
+              "auth": {
+                "type": "bearer",
+                "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "Dashboard",
+        "item": [
+          {
+            "name": "Get User Stats",
+            "request": {
+              "method": "GET",
+              "url": "{{base_url}}/api/v1/dashboard/stats",
+              "auth": {
+                "type": "bearer",
+                "bearer": [{"key": "token", "value": "{{accessToken}}", "type": "string"}]
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }

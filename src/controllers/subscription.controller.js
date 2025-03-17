@@ -4,45 +4,60 @@ import { Subscription } from "../models/subscription.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
-
-
+import { Notification } from "../models/notification.model.js"
 const toggleSubscription = asyncHandler(async (req, res) => {
     try {
         const {channelId} = req.params
-    // TODO: toggle subscription
-    const subscriberId = req.user._id
-    if(!isValidObjectId(channelId)) {
-        throw new ApiError(400, "Invalid channel id")
-    }
-    const subscriber = await User.findById(subscriberId)
-    const channel = await User.findById(channelId)
-    const existingSubscription = await Subscription.findOne({
-        subscriber: subscriberId,
-        channel: channelId
-    })
-    if(existingSubscription) {
-        await existingSubscription.deleteOne()
-        channel.subscribersCount -= 1
-        subscriber.subscribedChannelsCount -= 1
-        await Promise.all([channel.save(), subscriber.save()])
+        const subscriberId = req.user._id
+        if(!isValidObjectId(channelId)) {
+            throw new ApiError(400, "Invalid channel id")
+        }
+        const subscriber = await User.findById(subscriberId)
+        const channel = await User.findById(channelId)
+        const existingSubscription = await Subscription.findOne({
+            subscriber: subscriberId,
+            channel: channelId
+        })
+        if(existingSubscription) {
+            await existingSubscription.deleteOne()
+            channel.subscribersCount -= 1
+            subscriber.subscribedChannelsCount -= 1
+            await Promise.all([channel.save(), subscriber.save()])
+
+            // Delete subscription notification if exists
+            await Notification.deleteOne({
+                recipient: channelId,
+                sender: subscriberId,
+                type: "subscription"
+            })
+
+            return res.status(200).json(
+                new ApiResponse(200, {}, "Subscription removed successfully")
+            )
+        }
+        const newSubscription = await Subscription.create({
+            subscriber: subscriberId,
+            channel: channelId
+        })
+        channel.subscribersCount += 1
+        subscriber.subscribedChannelsCount += 1
+
+        // Create notification for new subscription
+        await Notification.create({
+            recipient: channelId,
+            sender: subscriberId,
+            type: "subscription",
+            message: `${subscriber.username} has subscribed to your channel`
+        })
+
+        await Promise.all([channel.save(), subscriber.save(), newSubscription.save()])
         return res.status(200).json(
-            new ApiResponse(200, {}, "Subscription removed successfully")
+            new ApiResponse(200, {}, "Subscription added successfully")
         )
-    }
-    const newSubscription = await Subscription.create({
-        subscriber: subscriberId,
-        channel: channelId
-    })
-    channel.subscribersCount += 1
-    subscriber.subscribedChannelsCount += 1
-    await Promise.all([channel.save(), subscriber.save(), newSubscription.save()])
-    return res.status(200).json(
-        new ApiResponse(200, {}, "Subscription added successfully")
-    )
     } catch (error) {
-     res.status(error.statusCode || 500).json(
-         new ApiResponse(error.statusCode || 500, {}, error?.message || "Internal Server Error")
-     )   
+        res.status(error.statusCode || 500).json(
+            new ApiResponse(error.statusCode || 500, {}, error?.message || "Internal Server Error")
+        )   
     }
 })
 

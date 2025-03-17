@@ -1,22 +1,25 @@
 import { Router } from 'express';
 import {
-    deleteVideo,
     getAllVideos,
-    getVideoById,
     publishAVideo,
-    togglePublishStatus,
+    getVideoById,
     updateVideo,
+    deleteVideo,
+    togglePublishStatus,
+    toggleVideoLike,
+    toggleVideoDislike
+
 } from "../controllers/video.controller.js"
-import {verifyJWT} from "../middlewares/auth.middleware.js"
+import {authenticate} from "../middlewares/auth.middleware.js"
 import {upload} from "../middlewares/multer.middlewares.js"
 
 const router = Router();
-router.use(verifyJWT); // Apply verifyJWT middleware to all routes in this file
+// router.use(); // Apply verifyJWT middleware to all routes in this file
 
 router
     .route("/")
     .get(getAllVideos)
-    .post(
+    .post(authenticate,
         upload.fields([
             {
                 name: "videoFile",
@@ -34,9 +37,14 @@ router
 router
     .route("/:videoId")
     .get(getVideoById)
-    .delete(deleteVideo)
-    .patch(upload.single("thumbnail"), updateVideo);
+    .delete(authenticate,deleteVideo)
+    .patch(authenticate,upload.single("thumbnail"), updateVideo);
 
-router.route("/toggle/publish/:videoId").patch(togglePublishStatus);
+router.route("/toggle/publish/:videoId").patch(authenticate,togglePublishStatus);
+router.route("/:videoId/like")
+    .post(toggleVideoLike);
+
+router.route("/:videoId/dislike")
+    .post(toggleVideoDislike);
 
 export default router
